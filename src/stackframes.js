@@ -49,6 +49,8 @@ function extract (callsite) {
     isAsync         : callsite.isAsync(),         // isAsync: is this an async call (i.e. await or Promise.all())?
     isPromiseAll    : callsite.isPromiseAll(),    // isPromiseAll: is this an async call to Promise.all()?
     getPromiseIndex : callsite.getPromiseIndex(), // getPromiseIndex: returns the index of the promise element that was followed in Promise.all() for async stack traces, or null if the CallSite is not a Promise.all() call.
+    NameOrSourceURL : callsite.getScriptNameOrSourceURL(),
+    getPosition     : callsite.getPosition(),
   }
   return frame
 }
