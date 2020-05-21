@@ -1,6 +1,12 @@
 module.exports = stackframes
 
-function stackframes (err, { depths, exclude } = {}) {
+function stackframes (err = {}) {
+  var depths, exclude
+  if (!(err instanceof Error)) {
+    depths = err.depths
+    exclude = err.exclude
+    err = void 0
+  }
   if (!(depths > -1)) depths = Infinity
   if (typeof err === "number") (depths = err, err = void 0)
   const exclude_this_and_below = exclude || stackframes
