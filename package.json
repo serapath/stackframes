@@ -1,0 +1,41 @@
+{
+  "name": "stackframes",
+  "version": "0.0.0",
+  "description": "stackframes",
+  "main": "src/stackframes.js",
+  "scripts": {
+    "start": "budo demo/demo.js:bundle.js --live --open --ssl --dir .",
+    "build": "browserify demo/demo.js -o bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serapath/stackframes.git"
+  },
+  "keywords": [
+    "callsite",
+    "callsites",
+    "trace",
+    "stack",
+    "stacks",
+    "tracert",
+    "stacktraces",
+    "stacktrace",
+    "stackframes",
+    "stackframe",
+    "stacksites",
+    "stackside",
+    "errorstack",
+    "stackerror",
+    "framestack"
+  ],
+  "author": "@serapath",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/serapath/stackframes/issues"
+  },
+  "homepage": "https://github.com/serapath/stackframes#readme",
+  "devDependencies": {
+    "budo": "^11.6.3"
+  }
+}
