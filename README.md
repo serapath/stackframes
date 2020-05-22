@@ -10,6 +10,9 @@ https://serapath.github.io/stackframes/
 ```js
 const stackframes = require('stackframes')
 
+demo()
+
+function demo () {
   var error
 
   try {
@@ -25,11 +28,18 @@ const stackframes = require('stackframes')
   function foo () { bar() }
   function bar () { baz() }
   function baz () {
-    console.log('0', stackframes(error))
+
+    const defaultFlags = stackframes.defaultFlags
+    console.log(defaultFlags)
+    const flags = defaultFlags.filter((_, i) => i%2) // take every second flag
+
+    console.log('0', stackframes(error, flags))
     console.log('1', stackframes())
     console.log('2', stackframes({ exclude: foo }))
     console.log('3', stackframes({ exclude: example }))
     console.log('4', stackframes({ depths: 2, exclude: baz }))
     console.log('5', stackframes({ depths: 2 }))
+    console.log('6', stackframes(null, flags))
   }
+}
 ```
