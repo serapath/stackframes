@@ -1,6 +1,6 @@
 {
   "name": "stackframes",
-  "version": "0.0.2-alpha",
+  "version": "0.0.3-alpha",
   "description": "stackframes",
   "main": "src/stackframes.js",
   "scripts": {
@@ -37,5 +37,8 @@
   "homepage": "https://github.com/serapath/stackframes#readme",
   "devDependencies": {
     "budo": "^11.6.3"
+  },
+  "dependencies": {
+    "jsonloop": "0.0.1"
   }
 }
