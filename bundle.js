@@ -1,10 +1,11 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 const stackframes = require('..')
 
-document.body.innerHTML = `<xmp>${start}\nstart()</xmp><hr><h2>open devtools console to check results:</h2>`//'<h1> open devtools console: </h1>'
-start()
+document.body.innerHTML = `<xmp>${demo}\ndemo()</xmp><hr><h2>open devtools console to check results:</h2>`//'<h1> open devtools console: </h1>'
 
-function start () {
+demo()
+
+function demo () {
   var error
 
   try {
@@ -20,12 +21,18 @@ function start () {
   function foo () { bar() }
   function bar () { baz() }
   function baz () {
-    console.log('0', stackframes(error))
+
+    const defaultFlags = stackframes.defaultFlags
+    console.log(defaultFlags)
+    const flags = defaultFlags.filter((_, i) => i%2) // take every second flag
+
+    console.log('0', stackframes(error, flags))
     console.log('1', stackframes())
     console.log('2', stackframes({ exclude: foo }))
     console.log('3', stackframes({ exclude: example }))
     console.log('4', stackframes({ depths: 2, exclude: baz }))
     console.log('5', stackframes({ depths: 2 }))
+    console.log('6', stackframes(null, flags))
   }
 }
 
@@ -153,11 +160,62 @@ function jsonloop (specialChar = '.') {
 const jsonloop = require('jsonloop')
 const cJSON = jsonloop()
 
+const methods = {
+  "getThis": callsite => {                                            // getThis: returns the value of this
+    const self = callsite.getThis()
+    const ctor = self.constructor
+    const ctorName = ctor ? `:${ctor.name}` : ''
+    const isGlobal = self === globalThis
+    const type = `${isGlobal ? 'global' : 'local'}${ctorName}`
+    var json
+    try {
+      json = isGlobal ? `${self}` : cJSON.stringify(self)
+    } catch (error) {
+      json = `${self}:${error}`
+    }
+    return { type, json }
+  },
+  "getTypeName": callsite => callsite.getTypeName(),                  // getTypeName: returns the type of this as a string. This is the name of the function stored in the constructor field of this, if available, otherwise the object’s [[Class]] internal property.
+  "getFunctionSource": callsite => {                           // getFunction: returns the current function
+    const getF = callsite.getFunction()
+    if (getF) return `${getF}`
+  },
+  "getFunction": callsite => {                                        // getFunction: returns the current function
+    const getF = callsite.getFunction()
+    if (getF) {
+      const name = getF.name || '(anonymous)'
+      const ctor = getF.constructor
+      if (ctor) return { async: false, name }
+      const ctorName = ctor.name === "AsyncFunction"
+      return { type: ctorName, name }
+    }
+  },
+  "getFunctionName": callsite => callsite.getFunctionName(),          // getFunctionName: returns the name of the current function, typically its name property. If a name property is not available an attempt is made to infer a name from the function’s context.
+  "getMethodName": callsite => callsite.getMethodName(),              // getMethodName: returns the name of the property of this or one of its prototypes that holds the current function
+  "getFileName": callsite => callsite.getFileName(),                  // getFileName: if this function was defined in a script returns the name of the script
+  "getLineNumber": callsite => callsite.getLineNumber(),              // getLineNumber: if this function was defined in a script returns the current line number
+  "getColumnNumber": callsite => callsite.getColumnNumber(),          // getColumnNumber: if this function was defined in a script returns the current column number
+  "getEvalOrigin": callsite => callsite.getEvalOrigin(),              // getEvalOrigin: if this function was created using a call to eval returns a string representing the location where eval was called
+  "isToplevel": callsite => callsite.isToplevel(),                    // isToplevel: is this a top-level invocation, that is, is this the global object?
+  "isEval": callsite => callsite.isEval(),                            // isEval: does this call take place in code defined by a call to eval?
+  "isNative": callsite => callsite.isNative(),                        // isNative: is this call in native V8 code?
+  "isConstructor": callsite => callsite.isConstructor(),              // isConstructor: is this a constructor call?
+  "isAsync": callsite => callsite.isAsync(),                          // isAsync: is this an async call (i.e. await or Promise.all())?
+  "isPromiseAll": callsite => callsite.isPromiseAll(),                // isPromiseAll: is this an async call to Promise.all()?
+  "getPromiseIndex": callsite => callsite.getPromiseIndex(),          // getPromiseIndex: returns the index of the promise element that was followed in Promise.all() for async stack traces, or null if the CallSite is not a Promise.all() call.
+  "NameOrSourceURL": callsite => callsite.getScriptNameOrSourceURL(),
+  "getPosition": callsite => callsite.getPosition()
+}
+const defaultFlags = Object.keys(methods)
+
+stackframes.defaultFlags = defaultFlags
+
 module.exports = stackframes
 
-function stackframes (err = {}) {
+function stackframes (err = {}, flags = defaultFlags) {
   var depths, exclude
   if (!(err instanceof Error)) {
+    if (!err) err = {}
     depths = err.depths
     exclude = err.exclude
     err = void 0
@@ -170,7 +228,8 @@ function stackframes (err = {}) {
   Error.stackTraceLimit = depths
   Error.prepareStackTrace = prepareStackTrace
   if (!err) (err = {}, Error.captureStackTrace(err, exclude_this_and_below))
-  const frames = err.stack.map(extract)
+  const extractor = extract.bind(flags)
+  const frames = err.stack.map(extractor)
   Error.prepareStackTrace = v8Handler
   Error.stackTraceLimit = oldLimit
   return frames
@@ -179,33 +238,14 @@ function prepareStackTrace (_, stack) {
   return stack
 }
 function extract (callsite) {
-  const getF = callsite.getFunction()
-  const isAsync = getF && getF.constructor.name === "AsyncFunction"
-  const getFunction = getF && { async: isAsync, name: getF.name || '(anonymous)', source: `${getF}` }
-  const self = callsite.getThis()
-  const isGlobal = self === globalThis
-  const getThis = { type: isGlobal ? 'global' : 'local', json: isGlobal ? `${self}` : cJSON.stringify(self) }
-  const frame = {
-    getThis         : getThis,                    // getThis: returns the value of this
-    getTypeName     : callsite.getTypeName(),     // getTypeName: returns the type of this as a string. This is the name of the function stored in the constructor field of this, if available, otherwise the object’s [[Class]] internal property.
-    getFunction     : getFunction,                // getFunction: returns the current function
-    getFuncName     : getFunction.name,           // callsite.getFunction().name
-    getFunctionName : callsite.getFunctionName(), // getFunctionName: returns the name of the current function, typically its name property. If a name property is not available an attempt is made to infer a name from the function’s context.
-    getMethodName   : callsite.getMethodName(),   // getMethodName: returns the name of the property of this or one of its prototypes that holds the current function
-    getFileName     : callsite.getFileName(),     // getFileName: if this function was defined in a script returns the name of the script
-    getLineNumber   : callsite.getLineNumber(),   // getLineNumber: if this function was defined in a script returns the current line number
-    getColumnNumber : callsite.getColumnNumber(), // getColumnNumber: if this function was defined in a script returns the current column number
-    getEvalOrigin   : callsite.getEvalOrigin(),   // getEvalOrigin: if this function was created using a call to eval returns a string representing the location where eval was called
-    isToplevel      : callsite.isToplevel(),      // isToplevel: is this a top-level invocation, that is, is this the global object?
-    isEval          : callsite.isEval(),          // isEval: does this call take place in code defined by a call to eval?
-    isNative        : callsite.isNative(),        // isNative: is this call in native V8 code?
-    isConstructor   : callsite.isConstructor(),   // isConstructor: is this a constructor call?
-    isAsync         : callsite.isAsync(),         // isAsync: is this an async call (i.e. await or Promise.all())?
-    isPromiseAll    : callsite.isPromiseAll(),    // isPromiseAll: is this an async call to Promise.all()?
-    getPromiseIndex : callsite.getPromiseIndex(), // getPromiseIndex: returns the index of the promise element that was followed in Promise.all() for async stack traces, or null if the CallSite is not a Promise.all() call.
-    NameOrSourceURL : callsite.getScriptNameOrSourceURL(),
-    getPosition     : callsite.getPosition(),
+  const flags = this
+  const frame = {}
+  for (var i = 0, len = flags.length; i < len; i++) {
+    const flag = flags[i]
+    const fn = methods[flag]
+    if (fn) frame[flag] = fn(callsite)
   }
   return frame
 }
+
 },{"jsonloop":2}]},{},[1]);

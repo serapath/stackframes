@@ -1,6 +1,6 @@
 {
   "name": "stackframes",
-  "version": "0.0.3-alpha",
+  "version": "0.0.4-alpha",
   "description": "stackframes",
   "main": "src/stackframes.js",
   "scripts": {

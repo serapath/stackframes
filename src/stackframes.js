@@ -4,21 +4,31 @@ const cJSON = jsonloop()
 const methods = {
   "getThis": callsite => {                                            // getThis: returns the value of this
     const self = callsite.getThis()
+    const ctor = self.constructor
+    const ctorName = ctor ? `:${ctor.name}` : ''
     const isGlobal = self === globalThis
-    const type = isGlobal ? 'global' : 'local'
-    const json = isGlobal ? `${self}` : cJSON.stringify(self)
+    const type = `${isGlobal ? 'global' : 'local'}${ctorName}`
+    var json
+    try {
+      json = isGlobal ? `${self}` : cJSON.stringify(self)
+    } catch (error) {
+      json = `${self}:${error}`
+    }
     return { type, json }
   },
   "getTypeName": callsite => callsite.getTypeName(),                  // getTypeName: returns the type of this as a string. This is the name of the function stored in the constructor field of this, if available, otherwise the object’s [[Class]] internal property.
+  "getFunctionSource": callsite => {                           // getFunction: returns the current function
+    const getF = callsite.getFunction()
+    if (getF) return `${getF}`
+  },
   "getFunction": callsite => {                                        // getFunction: returns the current function
     const getF = callsite.getFunction()
     if (getF) {
-      const source = `${getF}`
       const name = getF.name || '(anonymous)'
       const ctor = getF.constructor
-      if (ctor) return { async: false, name, source }
-      const isAsync = ctor.name === "AsyncFunction"
-      return { async: isAsync, name, source }
+      if (ctor) return { async: false, name }
+      const ctorName = ctor.name === "AsyncFunction"
+      return { type: ctorName, name }
     }
   },
   "getFunctionName": callsite => callsite.getFunctionName(),          // getFunctionName: returns the name of the current function, typically its name property. If a name property is not available an attempt is made to infer a name from the function’s context.
