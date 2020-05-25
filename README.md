@@ -1,9 +1,14 @@
 # stackframes
-stackframes
+[![Sauce Test Status](https://saucelabs.com/buildstatus/serapath)](https://app.saucelabs.com/u/serapath)
 
 https://www.npmjs.com/package/stackframes
 
 https://serapath.github.io/stackframes/
+
+
+---
+[![Sauce Test Status](https://saucelabs.com/browser-matrix/serapath.svg)](https://saucelabs.com/u/serapath)
+
 
 # use
 `npm install stackframes`
@@ -43,3 +48,6 @@ function demo () {
   }
 }
 ```
+
+## supported by
+![Testing Powered By SauceLabs](https://raw.githubusercontent.com/saucelabs/opensource/master/assets/powered-by-saucelabs-badge-white.svg?sanitize=true "Testing Powered By SauceLabs")
